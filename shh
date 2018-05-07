@@ -20,7 +20,7 @@ readonly reset='\e[0m'
 
 _version()
 {
-		echo "$(basename $0) $VERSION - The shell script helper"
+		echo -e "$(basename $0) - The shell script helper - version $VERSION"
 }
 
 _usage()
