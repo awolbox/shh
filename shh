@@ -1,13 +1,26 @@
 #!/bin/bash
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#executive=""
+readonly VERSION=1.0
 readonly rawman=${executive}.1.md
 readonly color='\e[32m'
 readonly reset='\e[0m'
 
 _version()
 {
-		echo "$(basename $0) - version $VERSION"
+		echo "$(basename $0) $VERSION - The shell script helper"
 }
 
 _usage()
@@ -15,18 +28,28 @@ _usage()
 		_version
 		echo "
 		|Usage:
-		|   $(basename $0) [Options]... [Command]
+		|   $(basename $0) [Options]... [Command] [Command Options]...
         |
 		|Options:
 		|   -h, --help     Show usage information
 		|   -v, --version  Show version information
 		|   -n, --name=    name of the new script
+        |   -s, --silent   supress stdout and stderr
 		|   
         |Commands:
         |   new   setup a new working directory
         |   del   delete all working files in directory
         |   make  "compile" all working files\
-		" | cut -d "|" -f 2
+        |   ls    list all vars and functions in working dir
+		|   lsf   list all functions in working dir
+        |   lsv   list all variables in working dir
+        |
+        |Command Options:
+        |   new:
+        |      -n, --name=  name your script
+        |
+        |Author: awol <awol@member.fsf.org>\
+        " | cut -d "|" -f 2
 }
 
 # Uix
