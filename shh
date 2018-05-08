@@ -296,9 +296,12 @@ else
 
         # TESTING
         # nf) _new_function ;;
-        # ef) _edit_function ;;
         # nv) _new_var ;;
+        # ef) _edit_function ;;
         # ev) _edit_var ;;
+        # df) _del_function ;;
+        # dv) _del_var ;;
+        # da) _del_all ;;
         # -m,--man) _open_manpage ;;
             esac
 fi
