@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -28,26 +28,35 @@ readonly reset='\e[0m'
 
 _version()
 {
-    echo -e "$(basename $0) - The shell script helper - version $VERSION"
+    echo -e "$(basename $0) - The shell script helper - version $VERSION" >&2
 }
 
-_usage()
+_usage_short()
+{
+    echo "Usage: $(basename $0) [Options]... [Command] [Command Options]..." >&2
+}
+
+_usage_options()
+{
+    echo "$(basename $0) [-s|--silent][-h][--help][-v][--version] [new|del|ls|lsv|lsf|merg] [-n|--name]" >&2
+}
+
+_usage_long()
 {
     _version
+    echo
+    _usage_short
     echo "
-    |Usage:
-    |   $(basename $0) [Options]... [Command] [Command Options]...
-    |
     |Options:
-    |   -h, --help     Show usage information
-    |   -v, --version  Show version information
-    |   -n, --name=    name of the new script
+    |   -h, --help     show usage information
+    |   -o, --options  show available options
     |   -s, --silent   supress stdout and stderr
+    |   -v, --version  Show version information
     |   
     |Commands:
     |   new   setup a new working directory
     |   del   delete all working files in directory
-    |   merg  "compile" all working files
+    |   merg  "compile" all working files together
     |   ls    list all vars and functions in working dir
     |   lsf   list all functions in working dir
     |   lsv   list all variables in working dir
@@ -57,7 +66,7 @@ _usage()
     |      -n, --name=  name your script
     |      
     |Author: awol <awol@member.fsf.org>\
-    " | cut -d "|" -f 2
+    " | cut -d "|" -f 2 >&2
 }
 
 # Uix
@@ -119,26 +128,26 @@ _setup()
 # Show variable information
 _list_vars()
 {
-	[[ ! -f vars ]] && ex=1; _exit "no variables to list"
-    #sed '/^\s*$/d'
+	[[ ! -f ./'vars' ]] && { ex=1; _exit "no variables to list"; }
     echo -e "${color}VARIABLES:${reset}"
     while read -r line; do 
         case $line in
             ''|\#*) continue ;;
 		esac
 	    echo "$(echo -e ${color} $(echo $line | cut -d "=" -f 1 | cut -d " " -f 2 ) ${reset})$(echo $line | cut -d "=" -f 2 | sed 's/#.*//')"
-	done < vars
+	done < ./'vars'
+    #sed '/^\s*$/d'
 }
 
 # Show functions' "order of opertations"
 _list_functions()
 {
-    [[ ! -f functions ]] && ex=1; _exit "no functions to list"
+    [[ ! -f ./'functions' ]] && { ex=1; _exit "no functions to list"; }
     echo -e "${color}FUNCTIONS:${reset}" && \
         while read -r line; do 
             echo -e " ${color}(${n})${reset}\t$(echo $line | cut -d ' ' -f 2)";
 			n=$(($n + 1))
-		done < functions | sed '1 d' | sed '$ d'
+		done < ./'functions' | sed '1 d' | sed '$ d'
 }
 
 # Native files merged
@@ -212,8 +221,11 @@ else
         lsf) _list_functions ;;
         lsv) _list_vars ;;
         -s|--silent) QUIET='1'; shift ;;
-        -h|--help_) _usage ;;
-        -v|--ver) _version ;;
+        -h) echo -n "$(basename $0): "; _usage_short ;;
+        --help) _usage_long ;;
+        -o|--options) _usage_options ;;
+        -v) echo "$VERSION" ;;
+        --ver) _version ;;
         --) shift ;;
         *) ex=1; _exit "$(basename $0): Invalid command: $@" ;;
 	esac
