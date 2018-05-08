@@ -28,36 +28,36 @@ readonly reset='\e[0m'
 
 _version()
 {
-		echo -e "$(basename $0) - The shell script helper - version $VERSION"
+    echo -e "$(basename $0) - The shell script helper - version $VERSION"
 }
 
 _usage()
 {
-		_version
-		echo "
-		|Usage:
-		|   $(basename $0) [Options]... [Command] [Command Options]...
-        |
-		|Options:
-		|   -h, --help     Show usage information
-		|   -v, --version  Show version information
-		|   -n, --name=    name of the new script
-        |   -s, --silent   supress stdout and stderr
-		|   
-        |Commands:
-        |   new   setup a new working directory
-        |   del   delete all working files in directory
-        |   make  "compile" all working files\
-        |   ls    list all vars and functions in working dir
-		|   lsf   list all functions in working dir
-        |   lsv   list all variables in working dir
-        |
-        |Command Options:
-        |   new:
-        |      -n, --name=  name your script
-        |
-        |Author: awol <awol@member.fsf.org>\
-        " | cut -d "|" -f 2
+    _version
+    echo "
+    |Usage:
+    |   $(basename $0) [Options]... [Command] [Command Options]...
+    |
+    |Options:
+    |   -h, --help     Show usage information
+    |   -v, --version  Show version information
+    |   -n, --name=    name of the new script
+    |   -s, --silent   supress stdout and stderr
+    |   
+    |Commands:
+    |   new   setup a new working directory
+    |   del   delete all working files in directory
+    |   merg  "compile" all working files
+    |   ls    list all vars and functions in working dir
+    |   lsf   list all functions in working dir
+    |   lsv   list all variables in working dir
+    |   
+    |Command Options:
+    |   new:
+    |      -n, --name=  name your script
+    |      
+    |Author: awol <awol@member.fsf.org>\
+    " | cut -d "|" -f 2
 }
 
 # Uix
