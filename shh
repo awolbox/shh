@@ -38,7 +38,7 @@ _usage_short()
 
 _usage_options()
 {
-    echo "$(basename $0) [-s|--silent][-h][--help][-v][--version] [new|del|ls|lsv|lsf|merge] [-n|--name]" >&2
+    echo "$(basename $0) [-s|--silent][-h][--help][-v][--version] [new|del|lv|lf|merge] [-n|--name]" >&2
 }
 
 _usage_long()
@@ -57,9 +57,8 @@ _usage_long()
     |   new    setup a new working directory
     |   del    delete all working files in directory
     |   merge  "compile" all working files together
-    |   ls     list all vars and functions in working dir
-    |   lsf    list all functions in working dir
-    |   lsv    list all variables in working dir
+    |   lf    list all functions in working dir
+    |   lv    list all variables in working dir
     |   
     |Command Options:
     |   new:
