@@ -12,7 +12,8 @@ shh - The shell program helper utility
 
 # NOTES
 
-native files: *vars* *functions*
+
+
 
 # DESCRIPTION
 
@@ -22,14 +23,22 @@ These working environments are of assumed to be shell program, a *bash* shell to
 when a program gets very large, *bash* seems to be a language capable of very large programs.\ 
 
 The logic of *shh* is simple:\
-\    \* The program is given a primary name (*EXECUTIVE*).\
-\    \* The files *functions* and *vars* are created inside the working directory.\
-\    \* Another file is created, named after *EXECUTIVE*, is marked executable, and is open up on a text editor.
+\   \* The program is broken up into three parts - *vars*, *functions*, and an *executive*.\
+\   \* A *native directory* known as the *init directory* is then created.\
+\   \* The *init directory* is a *parent directory*, which contains all other parent directories.\
+
+##   *Terminology:*\
+*native files*
+:   Files that are native to the working environment, that is, files, that are not *special files*, which only exist prior toa *merge*, and will not get merged into the *working executive* (ex: *vars* *functions*).\
+*vars*
+:   A file containing all *ENVIRONMENT* variables, and all "common" or "global" variables, meaning all variables not contained within the scope of a function.\
+*functions*
+:   A file which sources all functions in order.\
 
 # WORKFLOW
 
-   \- All *ENVIRONMENT* variables, and other commmon variables with a large scope, go in the *vars* file.\
-   \- All functions are to be prefixed with the character "*\_*".
+   \- Start a new working environment in the current directory with *init*.\
+   \- Use *af* or *ae* to add new functions, or non-local variables, respectively
 
 # OPTIONS
 
