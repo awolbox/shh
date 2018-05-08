@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -17,6 +17,14 @@ readonly VERSION=1.0
 readonly rawman=${executive}.1.md
 readonly color='\e[32m'
 readonly reset='\e[0m'
+
+# All non zero return values are currently at set to 1, and since many things are happening,
+# retun values should probably have a wider scope.
+# HEY, THIS NEEDS DONE ASSHOLE!!!
+# Exit codes 
+# EX_USAGE=1
+# etc...
+#
 
 _version()
 {
@@ -95,7 +103,7 @@ _setup()
                 if [[ "$over" == 'n' || 'N' ]]; then
                     ex=1; _exit "user aborted action"
                 elif [[ "$over" == "y" || "Y" ]]; then
-                    rm -rf ./* ; continue
+                    _remove ; continue
                 fi
             fi
         fi
@@ -133,12 +141,11 @@ _list_functions()
 		done < functions | sed '1 d' | sed '$ d'
 }
 
-
 # Native files merged
 _vars()
 {
 		# Start if 'vars' exists
-		cat $executive | head -n 1 > .vars && cat vars >> .vars || return 1
+        { cat $executive | head -n 1 > .vars && cat vars >> .vars; } || ex=1, _exit "'.vars' not cooperating"
 }
 
 _functions()
@@ -147,33 +154,33 @@ _functions()
 		do
 				cat $(cut -d " " -f 2) > .funcs
 		done < functions
-		[ $? -ne 0 ] && { return 1; } ||  return 0
+		[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
 }
 
 
 # Special files handled
-self=$(basename $0)
 _special()
 {
-		local found
-		for found in ${all_files[@]}
-		do
-				case "$found" in
-						"$rawman") rm "$rawman" || return 1 ;;
-						#"$self" ) rm "$self" || return 1 ;;
-				esac
-		done
+    local found
+	for found in ${all_files[@]}
+	do case "$found" in
+        "$rawman") rm "$rawman" || ex=1; _exit "man page immovable" ;;
+        _*) rm ./_* ;;
+    esac done
 }
 
 # Finish him
 _sweep()
 {
-		cat .funcs >> .vars && rm .funcs
-		sed -i '1,4 d' $executive
-		cat $executive >> .vars && rm $executive
-		mv .vars $executive && chmod +x $executive
-		rm ./_*; rm vars functions
-		[ $? -eq 0 ] && _special
+    # Functions
+    { cat .funcs >> .vars && rm .funcs functions; } || { ex=1; _exit "could not sweep functions"; }
+		
+    # Executive
+    { sed -i '1,4 d' $executive && cat $executive >> .vars; } && { rm "${executive}"; } || { ex=1; _exit "unable to sweep executive"; }
+    { mv .vars $executive && chmod +x $executive && rm vars; } || { ex=1; _exit "unable to sweep vars"; }
+	
+    [ $? -ne 0 ] && { ex=1; _exit "unable to '_sweep'"; }
+    _special
 }
 
 
@@ -181,36 +188,36 @@ _sweep()
 # Checks to see if "native" files still exsist, if so, "merges" all files together in a certain order, then cleans up the place.
 _compile()
 {
-		all_files=( $(ls .) )
-		for n_file in ${all_files[@]}
-		do case "$n_file" in
-				vars) _vars; _returns ;;
-				functions) _functions; _returns ;;
-		esac done
-		[ $? -eq 0 ] && { _sweep; } || return 1
+    all_files=( $(ls .) )
+	for n_file in ${all_files[@]}
+	do case "$n_file" in
+        vars) _vars ;;
+		functions) _functions ;;
+	esac done
+	[ $? -ne 0 ] && ex=1; _exit "Compilation failure" # 'exit-code-system' needed
+    _sweep
 }
 
 # Options
 QUIET=0
-editor=vim
+{ [[ -z $EDITOR && -x /usr/bin/vim ]] && EDITOR=vim; } || { [[ -x /usr/bin/nano ]] && EDITOR=nano; }
 
-#options=$(getopt -o 'hsv' -l 'new,del,lf,lv' -- "$@")
-#[ $? -gt 0 ] && exit 1
-#eval set -- "$options"
-
-if [ $# -eq 0 ];
-then
+if [ $# -eq 0 ]; then
 		_usage
 else
-		case "$1" in
-				new) shift; _setup "$@" ;;
-				del) _remove; ;;
-                ls) _list_vars && _list_functions ;;
-                lsf) _list_functions ;;
-				lsv) _list_vars ;;
-				-s|--silent) QUIET='1'; shift ;;
-				-h|--help_) _usage ;;
-				-v|--ver) _version ;;
-		esac
+    case "$1" in
+        new) shift; _setup "$@" ;;
+		del) _remove; ;;
+        ls) _list_vars && _list_functions ;;
+        lsf) _list_functions ;;
+        lsv) _list_vars ;;
+        -s|--silent) QUIET='1'; shift ;;
+        -h|--help_) _usage ;;
+        -v|--ver) _version ;;
+        --) shift ;;
+        *) ex=1; _exit "$(basename $0): Invalid command: $@" ;;
+	esac
 fi
+exit $?
+
 
