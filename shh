@@ -38,7 +38,7 @@ _usage_short()
 
 _usage_options()
 {
-    echo "$(basename $0) [-s|--silent][-h][--help][-v][--version] [new|del|ls|lsv|lsf|merg] [-n|--name]" >&2
+    echo "$(basename $0) [-s|--silent][-h][--help][-v][--version] [new|del|ls|lsv|lsf|merge] [-n|--name]" >&2
 }
 
 _usage_long()
@@ -54,12 +54,12 @@ _usage_long()
     |   -v, --version  Show version information
     |   
     |Commands:
-    |   new   setup a new working directory
-    |   del   delete all working files in directory
-    |   merg  "compile" all working files together
-    |   ls    list all vars and functions in working dir
-    |   lsf   list all functions in working dir
-    |   lsv   list all variables in working dir
+    |   new    setup a new working directory
+    |   del    delete all working files in directory
+    |   merge  "compile" all working files together
+    |   ls     list all vars and functions in working dir
+    |   lsf    list all functions in working dir
+    |   lsv    list all variables in working dir
     |   
     |Command Options:
     |   new:
@@ -76,23 +76,25 @@ _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX
 # Remove all native files
 _remove()
 {
-		_remove_all()
-		{
-				{ while read -r line; do rm $(cut -d " " -f 2); done < functions; }
-				[[ $? -eq 0 ]] && { rm vars functions ${executive}; } || _exit 1
-		}
-		
-		if [[ "$QUIET" == "0" ]]
-		then
-				# Confirmation required
-				echo "CONFIRM [ y | n ]: "
-				read conf
+    _remove_all()
+	{
+        { while read -r line; do rm $(cut -d " " -f 2); done < ./'functions'; }
+		[[ $? -eq 0 ]] && { rm 'vars' 'functions' ${executive}; } || ex=1; _exit "failed to remove working files"
+	}
+    
+    if [[ $QUIET == 0 ]]; then
+        # Confirmation required
+		echo -n "CONFIRM [ y | n ]: "
+		read conf
 
-				[[ "$conf" == "n" || "N" || "no" || "NO" ]] && return 0
-				[[ "$conf" == "y" || "Y" || "yes" || "YES" ]] && _remove_all || _exit 1
-		else
-				_remove_all || _exit 1
-		fi
+        case "$conf" in
+            n|N|no|NO) ex=1; _exit "User aborted action" ;;
+            y|Y|yes|YES) _remove_all ;;
+            *) ex=1; _exit "user reponse not understood" ;;
+        esac
+    else
+		_remove_all || ex=1; _exit "failed to remove working files"
+	fi
 }
 
 # Setup a new working directory
@@ -123,7 +125,6 @@ _setup()
         { echo "#!/bin/bash" > "${executive}" && chmod +x "${executive}"; } #|| ex=1; _exit "data error"
         ${EDITOR} ${executive}
 }
-
 
 # Show variable information
 _list_vars()
@@ -165,7 +166,6 @@ _functions()
 		done < functions
 		[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
 }
-
 
 # Special files handled
 _special()
@@ -217,9 +217,10 @@ else
     case "$1" in
         new) shift; _setup "$@" ;;
 		del) _remove; ;;
-        ls) _list_vars && _list_functions ;;
-        lsf) _list_functions ;;
-        lsv) _list_vars ;;
+        la) _list_functions && _list_vars;;
+        lf) _list_functions ;;
+        lv) _list_vars ;;
+        merge) _compile ;;
         -s|--silent) QUIET='1'; shift ;;
         -h) echo -n "$(basename $0): "; _usage_short ;;
         --help) _usage_long ;;
