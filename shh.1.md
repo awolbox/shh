@@ -8,7 +8,7 @@ shh - The shell program helper utility
 
 # SYNOPSIS
 
-*shh* [*OPTIONS*]... [*COMMAND*] [*COMMAND OPTIONS*]...
+*shh* [*OPTIONS*] [*COMMAND*]
 
 # NOTES
 
@@ -33,14 +33,20 @@ The logic of *shh* is simple:\
 
 # OPTIONS
 
--h, \--help
-:   Show usage information. Use *-h* for short usage information, *--help* for long usage information.
-
--v, \--version
-:   Show version information. *-v* shows short information, while *--version* displays long version information.
-
 -s, \--silent
 :   Do not prompt the user for anything (Suppresses all stdout).
+
+-h, \--help
+:   Display usage information. Use *-h* for short usage information, *--help* for long usage information.
+
+-v, \--version
+:   Display version information. *-v* shows short information, while *--version* displays long version information.
+
+\--licence
+:   Display licensing and copyright information.
+
+\--warranty
+:   Display warranty information.
 
 # COMMANDS
 
@@ -59,11 +65,6 @@ lf
 merge
 :   Compile all working files together, based on function index. *Special files* will also be checked, and handled. By the end of the "compilation" process,
 all working files should be merged into one working executive.
-
-# COMMAND OPTIONS
-
--n, \--name=*EXECUTIVE*
-:   Supply a name for your program. *EXECUTIVE* will be recognized as that name.
 
 # SEE ALSO
 
