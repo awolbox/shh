@@ -5,7 +5,8 @@
 INDEX:
 ------
     shh         - Program
-    shh.1.gz    - Man page
+    shh.1.gz    - Man-page ("made" compressed)
+    shh.1.md    - Man-page ("un-made" raw)
     LICENCE     - Copyright notice
     README      - Your reading it
 
