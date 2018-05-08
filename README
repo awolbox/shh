@@ -1,9 +1,24 @@
-#
-# shh
-#
+#                                        #
+# shh - The shell program helper utility #
+#                                        #
 
+INDEX:
+------
+    shh         - Program
+    shh.1.gz    - Man page
+    LICENCE     - Copyright notice
+    README      - Your reading it
+
+INSTALL:
+--------
+    - This program should be placed in either /usr/local/bin, ~/bin, or /opt,
+      but can be placed anywhere that will be searched for in your $PATH of course.
+    
+    - shh.1.gz belongs in section 1 of the man pages.
+    
 TODO
 ----
     * add functions and vars to executive
-    * man
     * returns (exit codes)
+    * database
+    * indexing
