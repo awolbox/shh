@@ -153,7 +153,14 @@ _list_functions()
 _new_function()
 {
     # index
-    :
+    if [[ $1 == "-i" || "--index" && $2 ]]; then
+        function_index=$2
+    fi
+    
+    # Handle index
+    case "${function_index}" in
+        *) : ;;
+    esac
 }
 
 # Native files merged
@@ -241,7 +248,13 @@ else
         --ver) _version ;;
         --) shift ;;
         *) ex=1; _exit "$(basename $0): Invalid command: $@" ;;
-	esac
+
+        # TESTING
+        # nf) _new_function ;;
+        # ef) _edit_function ;;
+        # nv) _new_var ;;
+        # ev) _edit_var ;;
+    esac
 fi
 exit $?
 
