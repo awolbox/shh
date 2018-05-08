@@ -64,7 +64,7 @@ _usage_long()
     |   new:
     |      -n, --name=  name your script
     |      
-    |Author: awol <awol@member.fsf.org>\
+    |Manual: shh(1)\
     " | cut -d "|" -f 2 >&2
 }
 
