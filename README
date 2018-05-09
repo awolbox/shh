@@ -1,4 +1,3 @@
-# ! IN ACTIVE DEVELOPMENT !
 #                                        #
 # shh - The shell program helper utility #
 #                                        #
@@ -8,8 +7,7 @@
 [INDEX]:
 
     shh         - Program
-    shh.1.gz    - Man-page ("made" compressed)
-    shh.1.md    - Man-page ("un-made" raw)
+    shh.1.gz    - Man-page (compressed)
     LICENCE     - Copyright notice
     README      - Your reading it
 
@@ -17,18 +15,6 @@
 
     - This program should be placed in either /usr/bin, /usr/local/bin, ~/bin, or /opt,
     - shh.1.gz belongs in section 1 of the man pages (/usr/share/man/man1 or /usr/local/share/man/man1)
-
-[TODO]:
-
-    ! - returns (exit codes)
-    ! - parent database
-        -indexing
-    ! - default init value (for --silent)
-   
-[IDEAS]:
-
-    ? - read manpage
-    ? - choose licence
 
 [NOTES]:
 
