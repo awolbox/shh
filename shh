@@ -58,6 +58,7 @@ _usage(){
     |   
     |MANUAL: shh(1)\
     " | cut -d "|" -f 2 >&2
+    return 0
 }
 
 # Just in case, the licence information is also kept in a function.
@@ -311,7 +312,7 @@ else
 fi
 
 short_opts="s:chvlw"
-long_opts="silent,clean,help,version,licence,warranty"
+long_opts="silent,clean,help,version,licence,warranty,init::,del.lf.lv.merge"
 opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
 ret=$?
 
@@ -319,28 +320,27 @@ eval set -- "$opts"
 
 if [ $# -eq 0 ]; then
     _usage
-else
+fi
+
+while :
+do
     case "$1" in
         -s|--silent) QUIET=1; shift ;;
-        -h) _usage ;;
-        --help) _read_man ;;
-        -v) echo "$VERSION" ;;
-        --clean) CLEAN=1; shift ;;
+        -h) _usage; break ;;
+        --help) _read_man; break ;;
+        -v) echo "$VERSION"; break ;;
+        --clean) CLEAN=1 ;;
         # ? --debug) DEBUG=1 ;;#f='-v' ;;
-        --licence) _show_licence ;;
-        --warranty) _show_warranty ;;
-        --version) _version ;;
-        --) shift ;;
-        *) ex=1; _exit "${PROGRAM}: Invalid option: $1"
-    esac
-    
-    case "$COMMAND" in
-        init) _setup "$@" ;;
+        --licence) _show_licence; break ;;
+        --warranty) _show_warranty; break ;;
+        --version) _version; break ;;
+        --) shift; break ;;
+        init) _setup "$@"; break ;;
         # ! init) _setup_init "$@" ;;
-    	del) _remove; ;;
-        lf) _list_functions ;;
-        lv) _list_vars ;;
-        merge) _compile ;;
+    	del) _remove; break ;;
+        lf) _list_functions; break ;;
+        lv) _list_vars; break ;;
+        merge) _compile; break ;;
 
         # ! nf) _new_function ;;
         # ! nv) _new_var ;;
@@ -349,10 +349,9 @@ else
         # ! df) _del_function ;;
         # ! dv) _del_var ;;
         # ! da) _del_all ;;
-
-        *) _exit "${PROGRAM}: Invalid command: $2"
+        
+        *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
     esac
-fi
-
+done
 exit $?
 
