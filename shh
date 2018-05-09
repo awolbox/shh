@@ -16,18 +16,24 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# This program is still in development, as such
+# any comment beginning with '?' represents possible implimentations, 
+# any comment beginning with '!' represents implimentations which will take place, or are currently underway,
+# (meaning they might be "broken" at the moment).
+
 readonly VERSION=1.0
 readonly rawman=${executive}.1.md
 readonly color='\e[32m'
 readonly reset='\e[0m'
 
-# All non zero return values are currently at set to 1, and since many things are happening,
+# ! - All non zero return values are currently at set to 1, and since many things are happening,
 # retun values should probably have a wider scope.
 # HEY, THIS NEEDS DONE ASSHOLE!!!
 # Exit codes 
 # EX_USAGE=1
 # etc...
-#
+
+# ? - Color values to be understood
 
 _version()
 {
@@ -103,6 +109,7 @@ _show_warranty()
     | ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
     " | cut -d "|" -f 2 >&2
 }
+
 # Uix
 _warning(){ [ $QUIET = 0 ] && echo -n -e "${color}[WARNING]${reset} -- ${*}"; }
 _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX; }
@@ -188,7 +195,7 @@ _list_functions()
 		done < ./'functions' | sed '1 d' | sed '$ d'
 }
 
-# Create new function
+# ! - Create new function
 _new_function()
 {
     # index
