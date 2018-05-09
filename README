@@ -1,3 +1,4 @@
+# ! IN ACTIVE DEVELOPMENT !
 #                                        #
 # shh - The shell program helper utility #
 #                                        #
@@ -14,11 +15,9 @@
 
 [INSTALL]:
 
-    - This program should be placed in either /usr/local/bin, ~/bin, or /opt,
-      but can be placed anywhere that will be searched for in your $PATH of course.
-    
-    - shh.1.gz belongs in section 1 of the man pages.
-    
+    - This program should be placed in either /usr/bin, /usr/local/bin, ~/bin, or /opt,
+    - shh.1.gz belongs in section 1 of the man pages (/usr/share/man/man1 or /usr/local/share/man/man1)
+
 [TODO]:
 
     ! - returns (exit codes)
