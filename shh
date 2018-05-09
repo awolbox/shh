@@ -35,29 +35,25 @@ readonly reset='\e[0m'
 
 # ? - Color values to be understood
 
-_version()
-{
+_version(){
     echo -e "$(basename $0) - The shell program helper utility - version $VERSION" >&2
 }
-
-_usage_short()
-{
+_usage_short(){
     echo "\
     +Usage:
     +   $(basename $0) [-s,--silent][-h][--help][-v][--version][--licence][--warranty] [init NAME][del][lv][lf][merge]\
     "| cut -d "+" -f 2 >&2
 }
-_usage_long()
-{
+_usage_long(){
     _version
     echo
     _usage_short
     echo "
     |Options:
     |   -h, --help     show usage information
-    |   -o, --options  show available options
     |   -s, --silent   supress stdout and stderr
     |   -v, --version  show version information
+    |   --clean        verifys clean working dir
     |   --licence      show copyright information
     |   --warranty     show warranty information
     |Commands:
@@ -75,8 +71,7 @@ _usage_long()
 # Deletion of the licensing information at the head of this file is okay,
 # as it is only ABOUT this program. However, please leave this one alone, 
 # as it is a part of this program, and is important information the user should be able to access.
-_show_licence()
-{
+_show_licence(){
     echo "
     | Copyright (C) 2018 awol <awol@member.fsf.org>
     |
@@ -96,8 +91,7 @@ _show_licence()
 }
 
 # Display warranty information (Also important).
-_show_warranty()
-{
+_show_warranty(){
     echo "
     |    THERE IS NO WARRANTY FOR THIS PROGRAM, TO THE EXTENT PERMITTED BY
     | APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
@@ -115,65 +109,73 @@ _warning(){ [ $QUIET = 0 ] && echo -n -e "${color}[WARNING]${reset} -- ${*}"; }
 _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX; }
 
 # Remove all native files
-_remove()
-{
+_remove(){
     _remove_all()
 	{
-        { while read -r line; do rm $(cut -d " " -f 2); done < ./'functions'; }
-		[[ $? -eq 0 ]] && { rm 'vars' 'functions' ${executive}; } || ex=1; _exit "failed to remove working files"
+        # ! if functions contains valid data
+        { while read line; do rm "$(cut -d ' ' -f 2)"; done < ./functions; }
+		if [ $? -eq 0 ]; then 
+            rm ./{vars,functions,${executive}}
+            [ $? -ne 0 ] && ex=1; _exit "failed to remove working files"
+        fi
 	}
     
-    if [[ $QUIET == 0 ]]; then
+    if [ $QUIET = 0 ]; then
         # Confirmation required
-		echo -n "CONFIRM [ y | n ]: "
-		read conf
-
-        case "$conf" in
-            n|N|no|NO) ex=1; _exit "User aborted action" ;;
-            y|Y|yes|YES) _remove_all ;;
-            *) ex=1; _exit "user reponse not understood" ;;
-        esac
-    else
-		_remove_all || ex=1; _exit "failed to remove working files"
-	fi
+		echo -e -n "CONFIRM ${color}[ y | n ]: ${reset}"
+		while read conf; do case "$conf" in
+            n|N) ex=1; _exit "User aborted action" ;;
+            y|Y) _remove_all ;;
+            *) ex=1; _exit echo "user responce invalid"
+        esac done 
+    fi
+	
+    _remove_all
+    [ $? -ne 0 ] && { ex=1; _exit "failed to remove working files"; }
 }
 
 # Setup a new working directory
-_setup() 
-{
-        if [[ $QUIET = 1 ]]; then
-            executive=prog
-        elif [[ -z $1 ]]; then
-            echo -n "${color}[NAME]:${reset} "; read executive
+# ! - init directory
+_setup(){
+    # ! - Check if in a clean working directory
+    #[ $CLEAN = 1 ] && { [ $QUIET = 1 ] && [ -z $(ls -a) ] ;} || { [[ -z $(ls) ]]; && :;} 
+    
+    # Check if a working setup exists
+    # ! - Check if parents exist
+    local has
+    if [[ -f ./functions && -f ./vars ]]; then
+        if [[ $QUIET = 0 ]]; then
+            _warning "You already appear to to be in a working directory, overwrite?: "
+            while read has; do case "$has" in
+                n|N) ex=1; _exit "user aborted action" ;;
+                y|Y) _remove; break ;;
+                *) ex=1; _exit "user response invalid" ;;
+            esac done
         else
-            case "$1" in
-                *) executive=$2 ;;
-            esac
+            ex=1; _exit ""
         fi
-        
-        # Check if a working setup exists
-		if [[ -f functions && -f vars ]]; then
-            if [[ QUIET = 0 ]]; then
-                _warning "You already appear to to be in a working directory, overwrite?: "
-                read over
-                if [[ "$over" == 'n' || 'N' ]]; then
-                    ex=1; _exit "user aborted action"
-                elif [[ "$over" == "y" || "Y" ]]; then
-                    _remove ; continue
-                fi
-            fi
-        fi
+    fi
 
-		# Set native files, give an apropriate version number, and open $executive in an editor
-        { touch functions vars ${executive}; } && { echo "readonly VERSION=1.0" > ./'vars'; }
-        [[ $? -ne 0 ]] && { ex=1; _exit "data error"; }
-        { echo -e "#!/bin/bash\nsource vars\nsource functions" > ./"${executive}" && chmod +x ./"${executive}"; }
-        [[ $? -eq 0 ]] && ${EDITOR} ${executive}
+    # Get EXECUTIVE name
+    if [[ $QUIET = 1 ]]; then
+        executive=prog
+    elif [[ -z "$1" ]]; then
+        echo -e -n "${color}[NAME]:${reset} "; read executive
+    else
+        case "$1" in
+            *) executive="$2" ;;
+        esac
+    fi
+    
+    # Set native files, give an apropriate version number, and open $executive in an editor
+    { touch functions vars ${executive}; } && { echo "readonly VERSION=1.0" > ./'vars'; }
+    [[ $? -ne 0 ]] && { ex=1; _exit "data error"; }
+    { echo -e "#!/bin/bash\nsource vars\nsource functions" > ./${executive} && chmod +x "./${executive}"; }
+    [[ $? -eq 0 ]] && ${EDITOR} ${executive}
 }
 
 # Show variable information
-_list_vars()
-{
+_list_vars(){
 	[[ ! -f ./'vars' ]] && { ex=1; _exit "no variables to list"; }
     echo -e "${color}VARIABLES:${reset}"
     while read -r line; do 
@@ -185,8 +187,7 @@ _list_vars()
 }
 
 # Show functions' "order of opertations"
-_list_functions()
-{
+_list_functions(){
     [[ ! -f ./'functions' ]] && { ex=1; _exit "no functions to list"; }
     echo -e "${color}FUNCTIONS:${reset}" && \
         while read -r line; do 
@@ -196,8 +197,7 @@ _list_functions()
 }
 
 # ! - Create new function
-_new_function()
-{
+_new_function(){
     # index
     if [[ $1 == "-i" || "--index" && $2 ]]; then
         function_index=$2
@@ -210,24 +210,21 @@ _new_function()
 }
 
 # Native files merged
-_vars()
-{
-		# Start if 'vars' exists
-        { cat $executive | head -n 1 > .vars && cat vars >> .vars; } || ex=1, _exit "'.vars' not cooperating"
+_vars(){
+    # Start if 'vars' exists
+    { cat $executive | head -n 1 > .vars && cat vars >> .vars; } || ex=1, _exit "'.vars' not cooperating"
 }
 
-_functions()
-{
-		while read line
-		do
-				cat $(cut -d " " -f 2) > .funcs
-		done < functions
-		[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
+_functions(){
+    while read line
+	do
+        cat $(cut -d " " -f 2) > .funcs
+	done < functions
+	[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
 }
 
 # Special files handled
-_special()
-{
+_special(){
     local found
 	for found in ${all_files[@]}
 	do case "$found" in
@@ -237,8 +234,7 @@ _special()
 }
 
 # Finish him
-_sweep()
-{
+_sweep(){
     # Functions
     { cat .funcs >> .vars && rm .funcs functions; } || { ex=1; _exit "could not sweep functions"; }
 		
@@ -251,26 +247,27 @@ _sweep()
 }
 
 # "Compile"
-# Checks to see if "native" files still exsist, if so, "merges" all files together in a certain order, then cleans up the place.
-_compile()
-{
+# Checks to see if "native" files still exsist, if so, merge all files together, then clean up the place.
+_compile(){
     all_files=( $(ls .) )
 	for n_file in ${all_files[@]}
 	do case "$n_file" in
         vars) _vars ;;
 		functions) _functions ;;
 	esac done
-	[ $? -ne 0 ] && ex=1; _exit "Compilation failure" # 'exit-code-system' needed
+	[ $? -ne 0 ] && ex=1; _exit "Compilation failure" # exit-code "system" needed
     _sweep
 }
 
 # Options
 QUIET=0
+CLEAN=0
+# ? DEBUG=0
 
 # Editor 
 if [[ -n $EDITOR ]]; then
     EDITOR=$EDITOR
-elif [[ -x /usr/bin/vim ]]; then
+elif [[ -x usr/usr/bin/vim ]]; then
     EDITOR=vim
 elif [[ -x /usr/bin/nano ]]; then
     EDITOR=nano
@@ -286,7 +283,7 @@ else
     case "$1" in
         init) shift; _setup "$@" ;;
 		del) _remove; ;;
-        la) _list_functions && _list_vars;;
+        la) _list_functions && _list_vars;; # Needs more work
         lf) _list_functions ;;
         lv) _list_vars ;;
         merge) _compile ;;
@@ -295,21 +292,22 @@ else
         --help) _usage_long ;;
         -o|--options) _usage_options ;;
         -v) echo "$VERSION" ;;
+        --clean) CLEAN=1 ;;
         --licence) _show_licence ;;
         --warranty) _show_warranty ;;
         --version) _version ;;
         --) shift ;;
         *) ex=1; _exit "$(basename $0): Invalid command: $@" ;;
 
-        # TESTING
-        # nf) _new_function ;;
-        # nv) _new_var ;;
-        # ef) _edit_function ;;
-        # ev) _edit_var ;;
-        # df) _del_function ;;
-        # dv) _del_var ;;
-        # da) _del_all ;;
-        # -m,--man) _open_manpage ;;
+        # ! nf) _new_function ;;
+        # ! nv) _new_var ;;
+        # ! ef) _edit_function ;;
+        # ! ev) _edit_var ;;
+        # ! df) _del_function ;;
+        # ! dv) _del_var ;;
+        # ! da) _del_all ;;
+        # ! -m,--man) _open_manpage ;;
+        # ? --debug) DEBUG=1 ;;#f='-v' ;;
             esac
 fi
 exit $?
