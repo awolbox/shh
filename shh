@@ -22,7 +22,6 @@
 # (meaning they might be "broken" at the moment).
 
 readonly VERSION=1.0
-readonly rawman=${executive}.1.md
 readonly color='\e[32m'
 readonly reset='\e[0m'
 
@@ -38,10 +37,9 @@ _version(){
 }
 _usage(){
     _version
-    echo
     echo "
-    |Usage:
-    |   ${PROGRAM} [OPTIONS]... [COMMANDS]
+    |USAGE:
+    |   ${PROGRAM} [OPTIONS]... [COMMAND]
     |
     |OPTIONS:
     |   -h, --help     show usage information
@@ -51,7 +49,7 @@ _usage(){
     |   --licence      show copyright information
     |   --warranty     show warranty information
     |
-    |COMMANDS:
+    |COMMAND:
     |   init   setup a new working directory
     |   del    delete all working files in directory
     |   lf     list all functions in working dir
@@ -108,7 +106,7 @@ _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX
 # Show manual page.
 # (As long as this program was installed correctly)
 _read_man(){
-    [[ ! /usr/share/man1/shh.1.gz ]] && { ex=1; _exit "Manual not found (check man database)"; }
+    [[ ! /usr/share/man1/shh.1.gz ]] && { ex=1; _exit "man page not found"; } # advice?
     man 1 shh
 }
 
@@ -147,22 +145,24 @@ _remove(){
 
 # ! - init directory
 _setup_init(){
-    # Parents
-    init_dir=./.shh.db
-    parent_dirs=${init_dir}/{refs}
-    mkdir -p ${parent_dirs}
-    
-    # Children
+    init_dir=./.parents
+    parent_dirs=${init_dir}/{curr,refs}
     funcs=${init_dir}/curr/functions
     vars=${init_dir}/curr/vars
-    touch $funcs $vars
-
-    # Watch
     ls_init_dir=( $(ls ${init_dir}) )
     local files
+    
+    if [[ ! ./.parents ]]; then 
+        mkdir -p ${parent_dirs}
+    else
+        ex=1; exit ""
+    fi
+    
+    touch ${funcs} ${vars}
+    _index(){ md5sum $x >> ${init_dir}/index && x=$(cut -d " " -f 2); }
     for files in ${ls_init_dir[@]}; do case "$1" in
-        "$funcs") md5sum $funcs >> ${init_dir}/index ;;
-        "$vars") md5sum $vars >> ${init_dir}/index ;;
+        "$funcs") x=${funcs}; _index ;;
+        "$vars") x=${vars}$; _index ;;
     esac done
 }
 
@@ -256,7 +256,7 @@ _functions(){
 
 # Special files handled
 _special(){
-    local found
+    local found man
 	for found in ${all_files[@]}
 	do case "$found" in
         "$rawman") rm "$rawman" || ex=1; _exit "man page immovable" ;;
@@ -310,37 +310,38 @@ else
     ex=1; _exit "a standard text editor could not be found"
 fi
 
-# ? using getopt
-#ret=$?
-#short_opts="s:chvlw"
-#long_opts="silent,clean,help,version,licence,warranty"
-#opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
-#eval set -- "$opts"
-#while :; do
+short_opts="s:chvlw"
+long_opts="silent,clean,help,version,licence,warranty"
+opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
+ret=$?
+
+eval set -- "$opts"
 
 if [ $# -eq 0 ]; then
     _usage
 else
     case "$1" in
-        init) _setup "$@" ;;
-		del) _remove; ;;
-        la) _list_functions && _list_vars;; # Needs more work
-        lf) _list_functions ;;
-        lv) _list_vars ;;
-        merge) _compile ;;
         -s|--silent) QUIET=1; shift ;;
-        -h|--help) _usage ;;
-        # ! --help) _read_man ;;
-        -o|--options) _usage_options ;;
+        -h) _usage ;;
+        --help) _read_man ;;
         -v) echo "$VERSION" ;;
-        --clean) CLEAN=1 ;;
+        --clean) CLEAN=1; shift ;;
+        # ? --debug) DEBUG=1 ;;#f='-v' ;;
         --licence) _show_licence ;;
         --warranty) _show_warranty ;;
         --version) _version ;;
         --) shift ;;
-        *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
-
+        *) ex=1; _exit "${PROGRAM}: Invalid option: $1"
+    esac
+    
+    case "$COMMAND" in
+        init) _setup "$@" ;;
         # ! init) _setup_init "$@" ;;
+    	del) _remove; ;;
+        lf) _list_functions ;;
+        lv) _list_vars ;;
+        merge) _compile ;;
+
         # ! nf) _new_function ;;
         # ! nv) _new_var ;;
         # ! ef) _edit_function ;;
@@ -348,9 +349,10 @@ else
         # ! df) _del_function ;;
         # ! dv) _del_var ;;
         # ! da) _del_all ;;
-        # ! -m,--man) _open_manpage ;;
-        # ? --debug) DEBUG=1 ;;#f='-v' ;;
+
+        *) _exit "${PROGRAM}: Invalid command: $2"
     esac
 fi
+
 exit $?
 
