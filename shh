@@ -145,11 +145,31 @@ _remove(){
     [ $? -ne 0 ] && { ex=1; _exit "failed to remove working files"; }
 }
 
-# Setup a new working directory
 # ! - init directory
+_setup_init(){
+    # Parents
+    init_dir=./.shh.db
+    parent_dirs=${init_dir}/{refs}
+    mkdir -p ${parent_dirs}
+    
+    # Children
+    funcs=${init_dir}/curr/functions
+    vars=${init_dir}/curr/vars
+    touch $funcs $vars
+
+    # Watch
+    ls_init_dir=( $(ls ${init_dir}) )
+    local files
+    for files in ${ls_init_dir[@]}; do case "$1" in
+        "$funcs") md5sum $funcs >> ${init_dir}/index ;;
+        "$vars") md5sum $vars >> ${init_dir}/index ;;
+    esac done
+}
+
+# Setup a new working directory
 _setup(){
     # ! - Check if in a clean working directory
-    #[ $CLEAN = 1 ] && { [ $QUIET = 1 ] && [ -z $(ls -a) ] ;} || { [[ -z $(ls) ]]; && :;} 
+    #[[ $CLEAN = 1 ]] 
     
     # Check if a working setup exists
     # ! - Check if parents exist
@@ -320,6 +340,7 @@ else
         --) shift ;;
         *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
 
+        # ! init) _setup_init "$@" ;;
         # ! nf) _new_function ;;
         # ! nv) _new_var ;;
         # ! ef) _edit_function ;;
