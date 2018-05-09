@@ -22,11 +22,12 @@
 [TODO]:
 
     ! - returns (exit codes)
-    
+    ! - parent database
+        -indexing
+    ! - default init value (for --silent)
+   
 [IDEAS]:
 
-    ? - parent database
-        -indexing
     ? - read manpage
     ? - choose licence
 

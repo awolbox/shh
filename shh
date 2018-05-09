@@ -27,50 +27,47 @@ readonly color='\e[32m'
 readonly reset='\e[0m'
 
 # ! - All non zero return values are currently at set to 1, and since many things are happening,
-# retun values should probably have a wider scope.
+# and the use of silent mode is an option, return values should offer more information.
 # HEY, THIS NEEDS DONE ASSHOLE!!!
 # Exit codes 
 # EX_USAGE=1
 # etc...
 
-# ? - Color values to be understood
-
 _version(){
     echo -e "$(basename $0) - The shell program helper utility - version $VERSION" >&2
 }
-_usage_short(){
-    echo "\
-    +Usage:
-    +   $(basename $0) [-s,--silent][-h][--help][-v][--version][--licence][--warranty] [init NAME][del][lv][lf][merge]\
-    "| cut -d "+" -f 2 >&2
-}
-_usage_long(){
+_usage(){
     _version
     echo
-    _usage_short
     echo "
-    |Options:
+    |Usage:
+    |   ${PROGRAM} [OPTIONS]... [COMMANDS]
+    |
+    |OPTIONS:
     |   -h, --help     show usage information
     |   -s, --silent   supress stdout and stderr
     |   -v, --version  show version information
     |   --clean        verifys clean working dir
     |   --licence      show copyright information
     |   --warranty     show warranty information
-    |Commands:
+    |
+    |COMMANDS:
     |   init   setup a new working directory
     |   del    delete all working files in directory
     |   lf     list all functions in working dir
     |   lv     list all variables in working dir
     |   merge  "compile" all working files together
     |   
-    |Manual: shh(1)\
+    |MANUAL: shh(1)\
     " | cut -d "|" -f 2 >&2
 }
 
 # Just in case, the licence information is also kept in a function.
 # Deletion of the licensing information at the head of this file is okay,
-# as it is only ABOUT this program. However, please leave this one alone, 
+# as it is only ABOUT this program (a comment). However, please leave this one alone, 
 # as it is a part of this program, and is important information the user should be able to access.
+# (unless you are to modify/re-distribute this program under a new copyleft, in which case,
+#  a new name and information should be added).
 _show_licence(){
     echo "
     | Copyright (C) 2018 awol <awol@member.fsf.org>
@@ -108,25 +105,39 @@ _show_warranty(){
 _warning(){ [ $QUIET = 0 ] && echo -n -e "${color}[WARNING]${reset} -- ${*}"; }
 _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX; }
 
+# Show manual page.
+# (As long as this program was installed correctly)
+_read_man(){
+    [[ ! /usr/share/man1/shh.1.gz ]] && { ex=1; _exit "Manual not found (check man database)"; }
+    man 1 shh
+}
+
 # Remove all native files
 _remove(){
     _remove_all()
 	{
         # ! if functions contains valid data
+        # ! parents
+        local ret=$?
         { while read line; do rm "$(cut -d ' ' -f 2)"; done < ./functions; }
-		if [ $? -eq 0 ]; then 
-            rm ./{vars,functions,${executive}}
-            [ $? -ne 0 ] && ex=1; _exit "failed to remove working files"
+		if [[ $ret = 0 ]]; then 
+            rm ./vars ./functions 
+            if [[ $? -ne 0 ]]; then 
+                ex=1; _exit "failed to remove working files"
+            else
+                return 0
+            fi
         fi
 	}
     
     if [ $QUIET = 0 ]; then
         # Confirmation required
-		echo -e -n "CONFIRM ${color}[ y | n ]: ${reset}"
-		while read conf; do case "$conf" in
+		local conf ans
+        echo -e -n "CONFIRM ${color}[ y | n ]: ${reset}"
+		read conf
+        for ans in "${conf}"; do case "$1" in
             n|N) ex=1; _exit "User aborted action" ;;
             y|Y) _remove_all ;;
-            *) ex=1; _exit echo "user responce invalid"
         esac done 
     fi
 	
@@ -159,18 +170,18 @@ _setup(){
     # Get EXECUTIVE name
     if [[ $QUIET = 1 ]]; then
         executive=prog
-    elif [[ -z "$1" ]]; then
+    elif [[ -z $1 ]]; then
         echo -e -n "${color}[NAME]:${reset} "; read executive
     else
         case "$1" in
-            *) executive="$2" ;;
+            *) executive="$1"; shift ;;
         esac
     fi
     
     # Set native files, give an apropriate version number, and open $executive in an editor
     { touch functions vars ${executive}; } && { echo "readonly VERSION=1.0" > ./'vars'; }
     [[ $? -ne 0 ]] && { ex=1; _exit "data error"; }
-    { echo -e "#!/bin/bash\nsource vars\nsource functions" > ./${executive} && chmod +x "./${executive}"; }
+    { echo -e "#!/bin/bash\nsource vars\nsource functions" > "./${executive}" && chmod +x "./${executive}"; }
     [[ $? -eq 0 ]] && ${EDITOR} ${executive}
 }
 
@@ -260,6 +271,8 @@ _compile(){
 }
 
 # Options
+PROGRAM="${0##*/}"
+COMMAND="$1"
 QUIET=0
 CLEAN=0
 # ? DEBUG=0
@@ -277,19 +290,27 @@ else
     ex=1; _exit "a standard text editor could not be found"
 fi
 
+# ? using getopt
+#ret=$?
+#short_opts="s:chvlw"
+#long_opts="silent,clean,help,version,licence,warranty"
+#opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
+#eval set -- "$opts"
+#while :; do
+
 if [ $# -eq 0 ]; then
-		_usage
+    _usage
 else
     case "$1" in
-        init) shift; _setup "$@" ;;
+        init) _setup "$@" ;;
 		del) _remove; ;;
         la) _list_functions && _list_vars;; # Needs more work
         lf) _list_functions ;;
         lv) _list_vars ;;
         merge) _compile ;;
-        -s|--silent) QUIET='1'; shift ;;
-        -h) echo -n "$(basename $0): "; _usage_short ;;
-        --help) _usage_long ;;
+        -s|--silent) QUIET=1; shift ;;
+        -h|--help) _usage ;;
+        # ! --help) _read_man ;;
         -o|--options) _usage_options ;;
         -v) echo "$VERSION" ;;
         --clean) CLEAN=1 ;;
@@ -297,7 +318,7 @@ else
         --warranty) _show_warranty ;;
         --version) _version ;;
         --) shift ;;
-        *) ex=1; _exit "$(basename $0): Invalid command: $@" ;;
+        *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
 
         # ! nf) _new_function ;;
         # ! nv) _new_var ;;
@@ -308,8 +329,7 @@ else
         # ! da) _del_all ;;
         # ! -m,--man) _open_manpage ;;
         # ? --debug) DEBUG=1 ;;#f='-v' ;;
-            esac
+    esac
 fi
 exit $?
-
 
