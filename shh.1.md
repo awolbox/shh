@@ -8,32 +8,30 @@ shh - The shell program helper utility
 
 # SYNOPSIS
 
-*shh* [*OPTIONS*] [*COMMAND*]
-
-# NOTES
-
-
-
+*shh* [*OPTIONS*] [*COMMANDS*]
 
 # DESCRIPTION
 
-*shh* is a small utility script used to help setup, and control new working environments. 
-These working environments are of assumed to be shell program, a *bash* shell to be more specific.
-*shh* is capable of handling very large programs, and while sometimes it might just be best to switch to a more "capable" language
-when a program gets very large, *bash* seems to be a language capable of very large programs.\ 
+*shh* is a small utility script used to help setup, and control working environments for shell programs. A *bash* shell program to be more specific.
+*shh* is capable of handling very large programs, and while sometimes it might just be best to switch to a more \"capable\" language
+when a program gets very large, *bash* seems to be a language capable of very large operations. If you need to write very large programs in bash, this program
+might help.\ 
 
 The logic of *shh* is simple:\
 \   \* The program is broken up into three parts - *vars*, *functions*, and an *executive*.\
 \   \* A *native directory* known as the *init directory* is then created.\
-\   \* The *init directory* is a *parent directory*, which contains all other parent directories.\
+\   \* The *init directory* is a *parent directory*, which contains all other parent directories.
 
-##   *Terminology:*\
+## Terminology
+
 *native files*
-:   Files that are native to the working environment, that is, files, that are not *special files*, which only exist prior toa *merge*, and will not get merged into the *working executive* (ex: *vars* *functions*).\
+:   Files that are native to the working environment, that is, files, that are not *special files*, which only exist prior toa *merge*, and will not get merged into the *working executive* (ex: *vars* *functions*).
+
 *vars*
-:   A file containing all *ENVIRONMENT* variables, and all "common" or "global" variables, meaning all variables not contained within the scope of a function.\
+:   A file containing all *ENVIRONMENT* variables, and all *common* or *global* variables, meaning all variables not contained within the *scope* of a function, or *local* variable.
+
 *functions*
-:   A file which sources all functions in order.\
+:   A file which sources all functions in order.
 
 # WORKFLOW
 

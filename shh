@@ -38,7 +38,7 @@ _usage_short()
 {
     echo "\
     +Usage:
-    +   $(basename $0) [-s|--silent][-h][--help][-v][--version][--licence][--warranty] [[init NAME]|del|lv|lf|merge]\
+    +   $(basename $0) [-s,--silent][-h][--help][-v][--version][--licence][--warranty] [init NAME][del][lv][lf][merge]\
     "| cut -d "+" -f 2 >&2
 }
 _usage_long()

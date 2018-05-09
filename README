@@ -2,7 +2,7 @@
 # shh - The shell program helper utility #
 #                                        #
 
-[AUTHOR(Yell at)]: awol <awol@member.fsf.org>
+[AUTHOR/YELL-AT]: awol <awol@member.fsf.org>
 
 [INDEX]:
 
@@ -32,4 +32,7 @@
 
 [NOTES]:
 
-    This README is a part of the 'shh' program
+    The generation of this man page was done using pandoc
+    
+This README is a part of the shh program
+
