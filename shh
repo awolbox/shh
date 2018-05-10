@@ -242,16 +242,19 @@ _new_function(){
 
 # Native files merged
 _vars(){
-    # Start if 'vars' exists
-    cat "./${executive}" | head -n 1 > ./.vars && cat ./vars >> "./.vars"
-    [[ $? -ne 0 ]] && ex=1; _exit ".vars not cooperating"
+    local tmpvars
+    tmpvars=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX") || ex=1; _exit "yolo v"
+    cat "./${executive}" | head -n 1 > $tmpvars && cat ./vars >> $tmpvars
+    [ $? -eq 0 ] || ex=1; _exit "vars not cooperating"
 }
 
 _functions(){
+    local tmpfuncs
+    tmpfuncs=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX") || ex=1; _exit "yolo f"
     while read line; do
-        cat $(cut -d " " -f 2) > "./.funcs"
-	done < "./functions"
-	[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
+        cat $(cut -d " " -f 2) > $tmpfuncs
+	done < ./functions
+	[ $? -eq 0 ] || ex=1; _exit "functions not cooperating"
 }
 
 # Special files handled
@@ -313,7 +316,7 @@ fi
 [ $# -eq 0 ] && {  _usage; }
 
 short_opts="s:chvlw"
-long_opts="silent,clean,help,version,licence,warranty,init::,del.lf.lv.merge"
+long_opts="silent,clean,help,version,licence,warranty,init::,del,lf,lv,merge"
 opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
 ret=$?
 
@@ -322,7 +325,7 @@ eval set -- "$opts"
 while :
 do
     case "$1" in
-        -s|--silent) QUIET=1; shift ;;
+        -s|--silent) QUIET=1; break ;;
         -h) _usage; break ;;
         --help) _read_man; break ;;
         -v) echo "$VERSION"; break ;;
@@ -335,7 +338,7 @@ do
         *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
     esac
 done
-
+    
 case "$COMMAND" in
     init) _setup "$2" ;;
     # ! init) _setup_init "$@" ;;
