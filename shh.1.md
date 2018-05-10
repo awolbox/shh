@@ -14,7 +14,7 @@ shh - The shell program helper utility
 
 *shh* is a small utility script used to help setup, and control working environments for shell programs. A *bash* shell program to be more specific.
 *shh* is capable of handling very large programs, and while sometimes it might just be best to switch to a more \"capable\" language
-when a program gets very large, *bash* seems to be a language capable of very large operations. If you need to write very large programs in bash, this program
+when a program gets very large, *bash* seems to be a language capable of very large operations. If you need to write very large programs, in *bash*, this program
 might help.\ 
 
 The logic of *shh* is simple:\
@@ -44,10 +44,10 @@ The logic of *shh* is simple:\
 :   Do not prompt the user for anything (Suppresses all stdout).
 
 -h, \--help
-:   Display usage information. Use *-h* for short usage information, *--help* for long usage information.
+:   Display usage information. Use *-h* for short usage information, *\--help* for long usage information.
 
 -v, \--version
-:   Display version information. *-v* shows short information, while *--version* displays long version information.
+:   Display version information. *-v* shows short information, while *\--version* displays long version information.
 
 \--licence
 :   Display licensing and copyright information.
@@ -58,7 +58,7 @@ The logic of *shh* is simple:\
 # COMMANDS
 
 new
-:   Create a new working directory. The user is prompted to name the future executive, unless a name is supplied by *-n* or *--name=*.
+:   Create a new working directory. The user is prompted to name the future executive, unless a name is supplied by *-n* or *\--name=*.
 
 del
 :   Delete all working files created, while still leaving all other files in the current directory intact.
