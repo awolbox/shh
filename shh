@@ -121,8 +121,8 @@ _remove(){
     tmpf=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX")
     ret=$?
     
-    while read -r line; do
-        echo $line | cut -d " " -f 2 >> $tmpf || ex=1; _exit "failed to fill tempfile from .index"
+    while read -r line0; do
+        echo $line0 | cut -d " " -f 2 >> $tmpf #|| ex=1; _exit "failed to fill tempfile from .index"
     done < ./.parents/curr/.index
 
     while read -r line1; do
@@ -150,8 +150,8 @@ _setup_init(){
         [[ $? -eq 0 ]] || echo $?
 
         # Start filling stuff in ..
-        echo "readonly VERSION=1.0" > $VARIABLES || ex=1; _exit "failed to setup $VARIABLES"
-        echo -e "#!/bin/bash\nsource $VARIABLES\nsource $FUNCTIONS\n" >> $EXECUTIVE || ex=1; _exit "failed to setup $FUNCTIONS"
+        echo "readonly VERSION=1.0" > $VARIABLES echo $? #|| ex=1; _exit "failed to setup $VARIABLES"
+        echo -e "#!/bin/bash\nsource $VARIABLES\nsource $FUNCTIONS\n" >> $EXECUTIVE echo $? #|| ex=1; _exit "failed to setup $FUNCTIONS"
     }
 
     _make_init_dir(){
@@ -205,7 +205,7 @@ _setup_init(){
         }
         
         local ans1
-        echo -e -n "You apperar to already be in a working directoy, overwrite? [y/n]: "
+        echo -e -n "You apperar to already be in a working directoy, ${color}overwrite? [y/n]:${reset} "
         while read ans1; do case "$ans1" in
             n|N|no|NO) echo $? ; break ;;
             y|Y|yes|YES) _confirm || echo $? ; break ;;
@@ -241,69 +241,60 @@ _list_functions(){
 }
 
 # ! - Create new function
-_new_function(){
+_add_function(){
+    :
     # index
-    if [[ $1 == "-i" || "--index" && $2 ]]; then
-        function_index=$2
-    fi
-    
     # Handle index
-    case "${function_index}" in
-        *) : ;;
-    esac
-}
-
-# Native files merged
-_vars(){
-    local tmpvars
-    tmpvars=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX") #|| ex=1; _exit "yolo v"
-    cat ${executive} | head -n 1 > $tmpvars && cat vars >> $tmpvars
-    [[ $? -ne 0 ]] && ex=1; _exit "vars not cooperating"
-}
-
-_functions(){
-    local tmpfuncs
-    tmpfuncs=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX")
-    #[[ $? -eq 0 ]] || ex=1; _exit "yolo f"
-    while read line; do 
-        echo $line | cut -d " " -f 2 | sed 's/#.*//g'
-    done < ./functions | sed '1d;$d' > $tmpfuncs
-	[[ $? -ne 0 ]] && ex=1; _exit "functions not cooperating"
-}
-
-# Special files handled
-_special(){
-    local found man
-	for found in ${all_files[@]}
-	do case "$found" in
-        "$rawman") rm "$rawman" || ex=1; _exit "man page immovable" ;;
-        _*) rm ./_* ;;
-    esac done
-}
-
-# Finish him
-_sweep(){
-    # Functions
-    { cat $tmpfuncs >> $tmpvars && rm $tmpfuncs $tmpvars; } || { ex=1; _exit "could not sweep functions"; }
-		
-    # Executive
-    { sed -i '1,4 d' $executive && cat $executive >> $tmpvars; } && { rm "${executive}"; } || { ex=1; _exit "unable to sweep executive"; }
-    { mv $tmpvars $executive && chmod +x $executive && rm vars functions; } || { ex=1; _exit "unable to sweep vars"; }
-	
-    [ $? -ne 0 ] && { ex=1; _exit "unable to '_sweep'"; }
-    _special
 }
 
 # "Compile"
 # Checks to see if "native" files still exsist, if so, merge all files together, then clean up the place.
 _compile(){
+    # Native files merged
+    _vars(){
+        local tmpvars
+        tmpvars=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX")
+        cat ${executive} | head -n 1 > $tmpvars && cat vars >> $tmpvars
+        [[ $? -ne 0 ]] && ex=1; _exit "vars not cooperating"
+    }
+
+    _functions(){
+        local tmpfuncs
+        tmpfuncs=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX")
+        while read line; do 
+            echo $line | cut -d " " -f 2 | sed 's/#.*//g'
+        done < ./functions | sed '1d;$d' > $tmpfuncs
+    	[[ $? -ne 0 ]] && ex=1; _exit "functions not cooperating"
+    }
+
+    # Special files handled
+    _special(){
+        local found man
+    	for found in ${all_files[@]}; do case "$found" in
+            "$rawman") rm "$rawman" || ex=1; _exit "man page immovable" ;;
+            _*) rm ./_* ;;
+        esac done
+    }
+
+    # Finish him
+    _sweep(){
+        # Functions
+        { cat $tmpfuncs >> $tmpvars && rm $tmpfuncs $tmpvars; } || { ex=1; _exit "could not sweep functions"; }
+		# Executive
+        { sed -i '1,4 d' $executive && cat $executive >> $tmpvars; } && { rm "${executive}"; } || { ex=1; _exit "unable to sweep executive"; }
+        { mv $tmpvars $executive && chmod +x $executive && rm vars functions; } || { ex=1; _exit "unable to sweep vars"; }
+        [[ $? -ne 0 ]] && { ex=1; _exit "unable to '_sweep'"; }
+        _special
+    }
+
+    local n_file all_files
     all_files=( $(ls .) )
 	for n_file in ${all_files[@]}
 	do case "$n_file" in
         vars) _vars ;;
 		functions) _functions ;;
 	esac done
-	#[ "$?" -ne 0 ] && ex=1; _exit "Compilation failure" # exit-code "system" needed
+	[[ $? -ne 0 ]] && { ex=1; _exit "Compilation failure"; } # exit-code "system" needed
     _sweep
 }
 
@@ -327,7 +318,7 @@ else
     ex=1; _exit "a standard text editor could not be found"
 fi
 
-[ $# -eq 0 ] && {  _usage; }
+[[ $# -eq 0 ]] && {  _usage; }
 
 short_opts="s:chvlw"
 long_opts="silent,clean,help,version,licence,warranty,init::,del,lf,lv,merge"
