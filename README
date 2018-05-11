@@ -27,7 +27,10 @@
    
 [IDEAS]:
 
-    ? - choose licence upon completion
+    ? Choose licence upon completion
+    ? Clone into /tmp on startup. /tmp will be used as "working" dir. 
+       Options to save - replaces current working dir with /tmp dir.
+    ? Index file - file will be treated as "special file" ( a part of the program ).
 
 [NOTES]:
 
