@@ -256,7 +256,7 @@ _setup_init(){
         }
         
         local ans1
-        echo -e -n "You apperar to already be in a working directoy, ${color}overwrite? [y/n]:${reset} "
+        echo -e -n "You appear to already be in a working directory, ${color}overwrite? [y/n]:${reset} "
         while read ans1; do case "$ans1" in
             n|N|no|NO) echo $? ; break ;;
             y|Y|yes|YES) _confirm || echo $? ; break ;;
