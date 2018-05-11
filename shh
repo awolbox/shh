@@ -22,9 +22,22 @@
 # (meaning they might be "broken" at the moment).
 
 readonly VERSION=1.0
-readonly rawman=${executive}.1.md
 readonly color='\e[32m'
 readonly reset='\e[0m'
+
+declare -a PARENT CHILD
+INIT=./'.parents'
+PARENT=( 'curr' 'refs' '.index')
+CHILD=('vars' 'functions')
+
+# Define existing values
+if [[ -d $INIT ]]; then
+    INDEX=$INIT/${PARENT[0]}/${PARENT[2]}
+    EXECUTIVE=$(cat $INDEX | head -n 1 | cut -d " " -f 3)
+    VARIABLES=$INIT/${PARENT[0]}/${CHILD[0]}
+    FUNCTIONS=$INIT/${PARENT[0]}/${CHILD[1]}
+    [[ $? -ne 0 ]] && return 1
+fi
 
 # ! - All non zero return values are currently at set to 1, and since many things are happening,
 # and the use of silent mode is an option, return values should offer more information.
@@ -38,10 +51,9 @@ _version(){
 }
 _usage(){
     _version
-    echo
     echo "
-    |Usage:
-    |   ${PROGRAM} [OPTIONS]... [COMMANDS]
+    |USAGE:
+    |   ${PROGRAM} [OPTIONS]... [COMMAND]
     |
     |OPTIONS:
     |   -h, --help     show usage information
@@ -51,7 +63,7 @@ _usage(){
     |   --licence      show copyright information
     |   --warranty     show warranty information
     |
-    |COMMANDS:
+    |COMMAND:
     |   init   setup a new working directory
     |   del    delete all working files in directory
     |   lf     list all functions in working dir
@@ -108,166 +120,207 @@ _exit(){ [ $QUIET = 0 ] && echo -e "${color}[FATAL]${reset} -- ${*}" && exit $EX
 # Show manual page.
 # (As long as this program was installed correctly)
 _read_man(){
-    [[ ! /usr/share/man1/shh.1.gz ]] && { ex=1; _exit "Manual not found (check man database)"; }
+    [[ ! /usr/share/man1/shh.1.gz ]] && { ex=1; _exit "man page not found"; } # advice?
     man 1 shh
 }
 
-# Remove all native files
+# Remove all working files/directories
 _remove(){
-    _remove_all()
-	{
-        # ! if functions contains valid data
-        # ! parents
-        local ret=$?
-        { while read line; do rm "$(cut -d ' ' -f 2)"; done < ./functions; }
-		if [[ $ret = 0 ]]; then 
-            rm ./vars ./functions 
-            if [[ $? -ne 0 ]]; then 
-                ex=1; _exit "failed to remove working files"
-            else
-                return 0
-            fi
-        fi
-	}
     
-    if [ $QUIET = 0 ]; then
-        # Confirmation required
-		local conf ans
-        echo -e -n "CONFIRM ${color}[ y | n ]: ${reset}"
-		read conf
-        for ans in "${conf}"; do case "$1" in
-            n|N) ex=1; _exit "User aborted action" ;;
-            y|Y) _remove_all ;;
-        esac done 
-    fi
-	
-    _remove_all
-    [ $? -ne 0 ] && { ex=1; _exit "failed to remove working files"; }
+    # Removes  all functions
+    del_functions(){
+        local allf f
+        allf=( $(cat $FUNCTIONS | cut -d ' ' -f 2) )
+        while read; do
+            for f in ${allf[@]}; do
+                if [[ -e $f ]]
+                then
+                    if rm "$f"
+                    then
+                        [[ $? -eq 0 ]] || return 1
+                        return 0
+                    fi
+                fi
+            done
+        done < $FUNCTIONS
+    }
+
+    # Removes all files indexed files
+    del_indexed(){
+        local alli i
+        alli=( $(cat $INDEX | cut -d ' ' -f 3) )
+        while read; do
+            for i in ${alli[@]}; do
+                if [[ -e $i ]]
+                then
+                    if rm "$i"
+                    then
+                        [[ $? -eq 0 ]] || return 1
+                    fi
+                fi
+            done
+        done < $INDEX
+    }
+
+    while :; do
+        del_functions; del_indexed; break
+    done
+    
+    [[ $? -eq 0 ]] && rm -r "$INIT" || return 1
 }
 
-# Setup a new working directory
-# ! - init directory
-_setup(){
-    # ! - Check if in a clean working directory
-    #[ $CLEAN = 1 ] && { [ $QUIET = 1 ] && [ -z $(ls -a) ] ;} || { [[ -z $(ls) ]]; && :;} 
+_remove0(){
+    local line0 line1 tmpf
+    tmpf=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX")
+    ret=$?
     
-    # Check if a working setup exists
-    # ! - Check if parents exist
-    local has
-    if [[ -f ./functions && -f ./vars ]]; then
-        if [[ $QUIET = 0 ]]; then
-            _warning "You already appear to to be in a working directory, overwrite?: "
-            while read has; do case "$has" in
-                n|N) ex=1; _exit "user aborted action" ;;
-                y|Y) _remove; break ;;
-                *) ex=1; _exit "user response invalid" ;;
-            esac done
-        else
-            ex=1; _exit ""
-        fi
-    fi
+    while read -r line0; do
+        echo $line0 | cut -d " " -f 2 >> $tmpf #|| ex=1; _exit "failed to fill tempfile from .index"
+    done < $INDEX
 
-    # Get EXECUTIVE name
-    if [[ $QUIET = 1 ]]; then
-        executive=prog
-    elif [[ -z $1 ]]; then
-        echo -e -n "${color}[NAME]:${reset} "; read executive
-    else
-        case "$1" in
-            *) executive="$1"; shift ;;
-        esac
-    fi
-    
-    # Set native files, give an apropriate version number, and open $executive in an editor
-    { touch functions vars ${executive}; } && { echo "readonly VERSION=1.0" > ./'vars'; }
-    [[ $? -ne 0 ]] && { ex=1; _exit "data error"; }
-    { echo -e "#!/bin/bash\nsource vars\nsource functions" > "./${executive}" && chmod +x "./${executive}"; }
-    [[ $? -eq 0 ]] && ${EDITOR} ${executive}
+    while read -r line1; do
+        rm -rv $line1 || ex=1; _exit "failed to remove working files."
+    done < $tmpf
+    rm -rv $INIT $tmpf
+}
+
+# This will setup a hidden dir, set all parents inside,
+# make all children, then nest them inside of the parents.
+_setup_init(){
+    # Do random things to end this function.
+    _other(){
+        INDEX=$INIT/${PARENT[0]}/${PARENT[2]}
+        VARIABLES=$INIT/${PARENT[0]}/${CHILD[0]}
+        FUNCTIONS=$INIT/${PARENT[0]}/${CHILD[1]}
+        EXECUTIVE=$executive
+        
+        _get_index(){ grep -n $x $INDEX | cut -d " " -f 3; }
+        
+        readonly EXECUTIVE=$(x=$EXECUTIVE;_get_index)
+        readonly FUNCTIONS=$(x=$FUNCTIONS;_get_index)
+        readonly VARIABLES=$(x=$VARIABLES;_get_index)
+        [[ $? -eq 0 ]] || echo $?
+
+        # Start filling stuff in ..
+        echo "readonly VERSION=1.0" > $VARIABLES #|| ex=1; _exit "failed to setup $VARIABLES"
+        echo -e "#!/bin/bash\nsource ${VARIABLES}\nsource ${FUNCTIONS}\n" >> $EXECUTIVE #|| ex=1; _exit "failed to setup $FUNCTIONS"
+        chmod +x $executive
+    }
+
+    _make_init_dir(){
+        # Any additional argument is considered a name for the executive
+        if [[ $1 ]]
+        then
+            executive="$1"
+        else
+            # Get a name for the executive
+            local name
+            echo -e -n "${color}[NAME]: ${reset}"
+            while read name; do case $name in
+                *) executive="./${name}" || echo $?; break ;;
+            esac done
+        fi
+
+        # Make and index all.
+        declare -A all
+        if mkdir -p $INIT/{${PARENT[0]},${PARENT[1]}}
+        then
+            if a=$INIT/${PARENT[0]}/${PARENT[2]}; touch $a
+            then
+                if b=$executive; touch $b; md5sum $b >> $a
+                then
+                    if c=$INIT/${PARENT[0]}/${CHILD[0]}; touch $c; md5sum $c >> $a
+                    then
+                        if d=$INIT/${PARENT[0]}/${CHILD[1]}; touch $d; md5sum $d >> $a
+                        then
+                            _other
+                        fi
+                    fi
+                fi
+            fi
+        fi
+    }
+   
+    # Check if Parents exist,
+    # if so, return a non zero value, and prompt the user (if not in '--silent' mode).
+    _has_init_dir(){
+        # Confirmation needed to remove parents.
+        _confirm(){
+            local ans0
+            echo -e -n "[CONFIRM] ${color}[y/n]${reset}: "
+            while read ans0; do case "$ans0" in
+                n|N|no|NO) return 1 ;;
+                y|Y|yes|YES) _remove && _make_init_dir "$1" && return 0 || return 1 ;;
+                *) return 1 ;;
+            esac done
+        }
+        
+        local ans1
+        echo -e -n "You appear to already be in a working directory, ${color}overwrite? [y/n]:${reset} "
+        while read ans1; do case "$ans1" in
+            n|N|no|NO) echo $? ; break ;;
+            y|Y|yes|YES) _confirm || echo $? ; break ;;
+            *) echo "$?" ; break ;;
+        esac done
+    }
+
+    [[ ! -d $INIT ]] && _make_init_dir "$1" && return 0
+    [[ -d $INIT ]] && _has_init_dir "$1" && return 0
+    return 1
 }
 
 # Show variable information
 _list_vars(){
-	[[ ! -f ./'vars' ]] && { ex=1; _exit "no variables to list"; }
+	[[ ! -f $VARIABLES ]] && { ex=1; _exit "no variables to list"; }
     echo -e "${color}VARIABLES:${reset}"
     while read -r line; do 
         case $line in
             ''|\#*) continue ;;
 		esac
 	    echo "$(echo -e ${color} $(echo $line | cut -d "=" -f 1 | cut -d " " -f 2 ) ${reset})$(echo $line | cut -d "=" -f 2 | sed 's/#.*//')"
-	done < ./'vars'
+	done < $VARIABLES #./.parents/curr/vars
 }
 
 # Show functions' "order of opertations"
 _list_functions(){
-    [[ ! -f ./'functions' ]] && { ex=1; _exit "no functions to list"; }
+    [[ ! -f $FUNCTIONS ]] && { ex=1; _exit "no functions to list"; }
     echo -e "${color}FUNCTIONS:${reset}" && \
         while read -r line; do 
-            echo -e " ${color}(${n})${reset}\t$(echo $line | cut -d ' ' -f 2)";
+            echo -e " ${color}(${n})${reset}\t$(echo $line | cut -d ' ' -f 2)" >&2;
 			n=$(($n + 1))
-		done < ./'functions' | sed '1 d' | sed '$ d'
+		done < $FUNCTIONS #./.parents/curr/functions #| sed '1 d' | sed '$ d'
 }
 
 # ! - Create new function
-_new_function(){
+_add_function(){
+    :
     # index
-    if [[ $1 == "-i" || "--index" && $2 ]]; then
-        function_index=$2
-    fi
-    
     # Handle index
-    case "${function_index}" in
-        *) : ;;
-    esac
 }
 
-# Native files merged
-_vars(){
-    # Start if 'vars' exists
-    { cat $executive | head -n 1 > .vars && cat vars >> .vars; } || ex=1, _exit "'.vars' not cooperating"
-}
-
-_functions(){
-    while read line
-	do
-        cat $(cut -d " " -f 2) > .funcs
-	done < functions
-	[ $? -ne 0 ] && ex=1; _exit "'.funcs' not cooperating"
-}
-
-# Special files handled
-_special(){
-    local found
-	for found in ${all_files[@]}
-	do case "$found" in
-        "$rawman") rm "$rawman" || ex=1; _exit "man page immovable" ;;
-        _*) rm ./_* ;;
-    esac done
-}
-
-# Finish him
-_sweep(){
-    # Functions
-    { cat .funcs >> .vars && rm .funcs functions; } || { ex=1; _exit "could not sweep functions"; }
-		
-    # Executive
-    { sed -i '1,4 d' $executive && cat $executive >> .vars; } && { rm "${executive}"; } || { ex=1; _exit "unable to sweep executive"; }
-    { mv .vars $executive && chmod +x $executive && rm vars; } || { ex=1; _exit "unable to sweep vars"; }
-	
-    [ $? -ne 0 ] && { ex=1; _exit "unable to '_sweep'"; }
-    _special
-}
-
-# "Compile"
-# Checks to see if "native" files still exsist, if so, merge all files together, then clean up the place.
+# This function will merge all working files together, in order, by index.
+# Then cleans up the place, to leave behind one working program.
 _compile(){
-    all_files=( $(ls .) )
-	for n_file in ${all_files[@]}
-	do case "$n_file" in
-        vars) _vars ;;
-		functions) _functions ;;
-	esac done
-	[ $? -ne 0 ] && ex=1; _exit "Compilation failure" # exit-code "system" needed
-    _sweep
+   local tmpm funcs line
+   tmpm=$(mktemp -p /tmp "shh.XXXXXXXXXXXXXX") 
+   [[ $? -eq 0 ]] || return 1
+
+   if cat $EXECUTIVE | head -n 1 > $tmpm
+   then
+       if cat $VARIABLES >> $tmpm
+       then
+           while read -r line; do
+               cat $(echo $line | cut -d " " -f 2) #| sed 's/#.*//g')
+           done <"$FUNCTIONS" >> $tmpm #| sed '1d;$d' >> $tmpm
+           [[ $? -eq 0 ]] || return 1
+           if rm $EXECUTIVE && mv $tmpm $EXECUTIVE && chmod +x $EXECUTIVE
+           then
+               # Future executive is now current executive
+               EXECUTIVE=$(echo $EXECUTIVE | cut -d "/" -f 2)
+               mv ./$EXECUTIVE /tmp && _remove && mv /tmp/$EXECUTIVE .
+           fi
+       fi
+   fi
 }
 
 # Options
@@ -290,46 +343,46 @@ else
     ex=1; _exit "a standard text editor could not be found"
 fi
 
-# ? using getopt
-#ret=$?
-#short_opts="s:chvlw"
-#long_opts="silent,clean,help,version,licence,warranty"
-#opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
-#eval set -- "$opts"
-#while :; do
+[[ $# -eq 0 ]] && {  _usage; }
 
-if [ $# -eq 0 ]; then
-    _usage
-else
+short_opts="s:chvlw"
+long_opts="silent,clean,help,version,licence,warranty,init::,del,lf,lv,merge"
+opts=$(getopt -o $short_opts -l $long_opts -n "$PROGRAM $COMMAND" -- "$@")
+ret=$?
+
+eval set -- "$opts"
+
+while :
+do
     case "$1" in
-        init) _setup "$@" ;;
-		del) _remove; ;;
-        la) _list_functions && _list_vars;; # Needs more work
-        lf) _list_functions ;;
-        lv) _list_vars ;;
-        merge) _compile ;;
-        -s|--silent) QUIET=1; shift ;;
-        -h|--help) _usage ;;
-        # ! --help) _read_man ;;
-        -o|--options) _usage_options ;;
-        -v) echo "$VERSION" ;;
+        -s|--silent) QUIET=1; shift 2 ; break ;;
+        -h) _usage; break ;;
+        --help) _read_man; break ;;
+        -v) echo "$VERSION"; break ;;
         --clean) CLEAN=1 ;;
-        --licence) _show_licence ;;
-        --warranty) _show_warranty ;;
-        --version) _version ;;
-        --) shift ;;
-        *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
-
-        # ! nf) _new_function ;;
-        # ! nv) _new_var ;;
-        # ! ef) _edit_function ;;
-        # ! ev) _edit_var ;;
-        # ! df) _del_function ;;
-        # ! dv) _del_var ;;
-        # ! da) _del_all ;;
-        # ! -m,--man) _open_manpage ;;
         # ? --debug) DEBUG=1 ;;#f='-v' ;;
+        --licence) _show_licence; break ;;
+        --warranty) _show_warranty; break ;;
+        --version) _version; break ;;
+        --) shift; break ;;
+        *) ex=1; _exit "${PROGRAM}: Invalid command: $@" ;;
     esac
-fi
+done
+    
+case "$COMMAND" in
+    init) _setup_init "$2" ;;
+    del) _remove ;;
+    lf) _list_functions ;;
+    lv) _list_vars ;;
+    merge) _compile ;;
+    # ! nf) _new_function ;;
+    # ! nv) _new_var ;;
+    # ! ef) _edit_function ;;
+    # ! ev) _edit_var ;;
+    # ! df) _del_function ;;
+    # ! dv) _del_var ;;
+    # ! da) _del_all ;;
+esac
+
 exit $?
 

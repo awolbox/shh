@@ -13,7 +13,7 @@
 
 [INSTALL]:
 
-    - This program should be placed in either /usr/bin, /usr/local/bin, ~/bin, or /opt,
+    - shh should be placed in either /usr/bin, /usr/local/bin, ~/bin, or /opt,
     - shh.1.gz belongs in section 1 of the man pages (/usr/share/man/man1 or /usr/local/share/man/man1)
 
 [NOTES]:
